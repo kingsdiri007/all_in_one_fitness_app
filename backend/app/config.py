@@ -5,3 +5,7 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "570b8907ff16cac33923d93078914e0188ac3038871a78b95a78a3b4ca653ecf")
+    N8N_WEBHOOK_URL = os.getenv(
+        'N8N_WEBHOOK_URL',
+        'http://localhost:5678/webhook-test/generate-workout-plan'
+    )
