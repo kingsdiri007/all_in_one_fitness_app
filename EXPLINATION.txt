@@ -1,0 +1,37 @@
+
+Simple Explanation of Each File 📚
+📱 Screens (What users see)
+splash_screen.dart - First screen when app opens, shows logo/animation
+login_screen.dart - Where users enter email/password to log in
+registration_screen.dart - Multi-step form to create new account
+home_screen.dart - Main screen after login, shows dashboard
+
+
+🧩 Widgets (Reusable UI components)
+custom_button.dart - Styled button used throughout app
+custom_text_field.dart - Styled input field for forms
+goal_card.dart - Clickable card for selecting fitness goals
+habit_checkbox.dart - Checkbox for selecting healthy habits
+progress_bar.dart - Shows registration progress (25%, 50%, 75%, 100%)
+
+
+🧠 Providers (Manage app state/data)
+auth_provider.dart - Manages login/logout state, tracks if user is logged in
+registration_provider.dart - Manages registration steps, stores form data temporarily
+🔧 Services (Handle data & API calls)
+auth_service.dart - Handles login, registration, logout logic
+api_service.dart - Makes HTTP requests to backend (GET, POST, etc.)
+api_config.dart - Stores API URLs (login endpoint, register endpoint, etc.)
+storage_service.dart - Saves/loads data locally (user info, tokens)
+
+
+📦 Models (Data structures)
+user_model.dart - Defines what a "User" looks like (id, email, name, etc.)
+registration_data.dart - Stores all registration form data
+gym_model.dart - Defines what a "Gym" looks like (name, address, rating, etc.)
+
+
+🎨 Utils (Helper functions & constants)
+app_theme.dart - App colors, fonts, button styles
+constants.dart - Fixed values (route names, app name, lists)
+validators.dart - Checks if email/password/inputs are valid
