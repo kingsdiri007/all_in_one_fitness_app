@@ -61,6 +61,7 @@ class AppConstants {
   static const String loginRoute = '/login';
   static const String registrationRoute = '/registration';
   static const String homeRoute = '/home';
+  static const String dashboardRoute = '/dashboard';
 
   // App Info
   static const String appName = 'All-in-One Fitness App';

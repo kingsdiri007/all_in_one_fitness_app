@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Colors
-  static const Color primaryColor = Color(0xFF6C63FF);
-  static const Color secondaryColor = Color(0xFF00D4AA);
-  static const Color accentColor = Color(0xFFFF6584);
-  static const Color backgroundColor = Color(0xFFF8F9FA);
-  static const Color textPrimaryColor = Color(0xFF2D3142);
-  static const Color textSecondaryColor = Color(0xFF6C757D);
-  static const Color successColor = Color(0xFF28A745);
-  static const Color errorColor = Color(0xFFDC3545);
-  static const Color cardColor = Colors.white;
+  // Dark Gym Theme Colors
+  static const Color primaryColor = Color(0xFFFF6B35);  // Vibrant Orange
+  static const Color secondaryColor = Color(0xFFFFAB40);  // Amber
+  static const Color accentColor = Color(0xFF4ECDC4);  // Teal accent
+  static const Color backgroundColor = Color(0xFF1A1A2E);  // Dark navy
+  static const Color surfaceColor = Color(0xFF16213E);  // Slightly lighter navy
+  static const Color cardColor = Color(0xFF1F2940);  // Card background
+  static const Color textPrimaryColor = Color(0xFFFFFFFF);  // White
+  static const Color textSecondaryColor = Color(0xFFB0B0B0);  // Light gray
+  static const Color successColor = Color(0xFF4CAF50);  // Green
+  static const Color errorColor = Color(0xFFFF5252);  // Red
+  static const Color warningColor = Color(0xFFFFB74D);  // Orange warning
 
   // Gradient
   static const LinearGradient primaryGradient = LinearGradient(
@@ -20,15 +22,27 @@ class AppTheme {
     end: Alignment.bottomRight,
   );
 
+  static const LinearGradient heroGradient = LinearGradient(
+    colors: [Color(0xFF1A1A2E), Color(0xFF0F0F1A)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  static const LinearGradient cardGradient = LinearGradient(
+    colors: [Color(0xFF2A2A4A), Color(0xFF1F2940)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   static const LinearGradient splashGradient = LinearGradient(
-    colors: [primaryColor, accentColor],
+    colors: [backgroundColor, Color(0xFF0F0F1A)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   // Text Styles
   static TextStyle headingStyle = GoogleFonts.poppins(
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: FontWeight.bold,
     color: textPrimaryColor,
   );
@@ -57,17 +71,28 @@ class AppTheme {
     color: Colors.white,
   );
 
+  static TextStyle statNumberStyle = GoogleFonts.poppins(
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    color: textPrimaryColor,
+  );
+
+  static TextStyle statLabelStyle = GoogleFonts.inter(
+    fontSize: 12,
+    fontWeight: FontWeight.normal,
+    color: textSecondaryColor,
+  );
+
   // Theme Data
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.dark(
         primary: primaryColor,
         secondary: secondaryColor,
         error: errorColor,
-        background: backgroundColor,
-        surface: cardColor,
+        surface: surfaceColor,
       ),
       scaffoldBackgroundColor: backgroundColor,
       fontFamily: GoogleFonts.inter().fontFamily,
@@ -77,9 +102,9 @@ class AppTheme {
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: textPrimaryColor,
-        centerTitle: true,
+        centerTitle: false,
         titleTextStyle: GoogleFonts.poppins(
-          fontSize: 20,
+          fontSize: 22,
           fontWeight: FontWeight.w600,
           color: textPrimaryColor,
         ),
@@ -88,27 +113,27 @@ class AppTheme {
       // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: cardColor,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: primaryColor, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: errorColor),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: errorColor, width: 2),
         ),
         labelStyle: GoogleFonts.inter(
@@ -130,10 +155,10 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
-          elevation: 2,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           minimumSize: const Size(double.infinity, 56),
           textStyle: buttonTextStyle,
@@ -153,18 +178,34 @@ class AppTheme {
 
       // Card Theme
       cardTheme: CardThemeData(
-        elevation: 2,
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
         ),
         color: cardColor,
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        margin: const EdgeInsets.symmetric(vertical: 8),
+      ),
+
+      // Bottom Navigation Bar Theme
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: surfaceColor,
+        selectedItemColor: primaryColor,
+        unselectedItemColor: textSecondaryColor,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+      ),
+
+      // Floating Action Button Theme
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 4,
       ),
 
       // Checkbox Theme
       checkboxTheme: CheckboxThemeData(
-        fillColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return primaryColor;
           }
           return Colors.transparent;
