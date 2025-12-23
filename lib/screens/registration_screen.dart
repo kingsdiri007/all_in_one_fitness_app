@@ -26,10 +26,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _goalWeightController = TextEditingController();
   final _heightController = TextEditingController();
   final _stepsController = TextEditingController();
-  final _freeTimeController = TextEditingController();
-  final _locationController = TextEditingController();
 
   // Step 4 Controllers
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -50,8 +50,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _goalWeightController.dispose();
     _heightController.dispose();
     _stepsController.dispose();
-    _freeTimeController.dispose();
-    _locationController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -92,8 +92,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               children: [
                 _buildStep1(provider),
                 _buildStep2(provider),
-                _buildStep3(provider),
-                _buildStep4(provider),
+                _buildStep3(provider), // NEW:  Workout Schedule
+                _buildStep4(provider), // Now:  Healthy Habits
+                _buildStep5(provider), // Now: Account Setup
               ],
             ),
           ),
@@ -347,23 +348,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 FilteringTextInputFormatter.digitsOnly,
               ],
             ),
-
-            const SizedBox(height: 20),
-
-            // Free Time Per Week
-            CustomTextField(
-              label: 'Free Time Per Week (hours)',
-              hint: 'e.g., 5.5',
-              controller: _freeTimeController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              validator: (value) =>
-                  Validators.validatePositiveNumber(value, 'Free time'),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-              ],
-            ),
-
             const SizedBox(height: 20),
 
             // Workout Difficulty
@@ -403,12 +387,97 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             const SizedBox(height: 20),
 
             // Location
-            CustomTextField(
-              label: 'Location',
-              hint: 'City, State',
-              controller: _locationController,
-              validator: (value) =>
-                  Validators.validateRequired(value, 'Location'),
+            const SizedBox(height: 20),
+
+// Location - Dropdown
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Location',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButtonFormField<String>(
+                    value: provider.data.location?.isNotEmpty == true
+                        ? provider.data.location
+                        : null,
+                    decoration: InputDecoration(
+                      hintText: 'Select your city',
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                    ),
+                    icon: Icon(Icons.arrow_drop_down,
+                        color: AppTheme.primaryColor),
+                    isExpanded: true,
+                    items: [
+                      'Tunis',
+                      'Sfax',
+                      'Sousse',
+                      'Kairouan',
+                      'Bizerte',
+                      'Gabès',
+                      'Ariana',
+                      'Gafsa',
+                      'Monastir',
+                      'Ben Arous',
+                      'Kasserine',
+                      'Médenine',
+                      'Nabeul',
+                      'Tataouine',
+                      'Béja',
+                      'Jendouba',
+                      'Mahdia',
+                      'Sidi Bouzid',
+                      'Zaghouan',
+                      'Siliana',
+                      'Kébili',
+                      'Tozeur',
+                      'Manouba',
+                      'Kef',
+                    ].map((city) {
+                      return DropdownMenuItem<String>(
+                        value: city,
+                        child: Text(city),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        provider.data.location = value;
+                        provider.setPersonalInfo(
+                          currentWeight: provider.data.currentWeight ?? 0,
+                          weightUnit: provider.data.weightUnit,
+                          goalWeight: provider.data.goalWeight ?? 0,
+                          height: provider.data.height ?? 0,
+                          heightUnit: provider.data.heightUnit,
+                          estimatedDailySteps:
+                              provider.data.estimatedDailySteps ?? 0,
+                          workoutDifficulty:
+                              provider.data.workoutDifficulty ?? '',
+                          location: value,
+                        );
+                      }
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a city';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 32),
@@ -440,10 +509,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           height: double.parse(_heightController.text),
                           heightUnit: provider.data.heightUnit,
                           estimatedDailySteps: int.parse(_stepsController.text),
-                          freeTimePerWeek:
-                              double.parse(_freeTimeController.text),
                           workoutDifficulty: provider.data.workoutDifficulty!,
-                          location: _locationController.text.trim(),
+                          location: provider.data.location ?? '',
                         );
                         provider.nextStep();
                         _animateToPage(2);
@@ -459,8 +526,164 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
-  // Step 3: Healthy Habits
+  // Step 3: Workout Schedule
   Widget _buildStep3(RegistrationProvider provider) {
+    final days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+    final timeSlots = ['Morning', 'Midday', 'Evening', 'Night'];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Workout Schedule',
+            style: AppTheme.headingStyle,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Select your available workout days and times',
+            style: AppTheme.bodyStyle.copyWith(color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+
+          // Days list
+          ...days.map((day) {
+            final isSelected = provider.data.workoutSchedule[day] != null;
+            final selectedTime = provider.data.workoutSchedule[day];
+
+            return Column(
+              children: [
+                // Day checkbox
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isSelected
+                          ? AppTheme.primaryColor
+                          : Colors.grey.shade300,
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    color: isSelected
+                        ? AppTheme.primaryColor.withOpacity(0.05)
+                        : Colors.white,
+                  ),
+                  child: CheckboxListTile(
+                    title: Text(
+                      day,
+                      style: TextStyle(
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontSize: 16,
+                      ),
+                    ),
+                    value: isSelected,
+                    activeColor: AppTheme.primaryColor,
+                    onChanged: (value) {
+                      if (value == true) {
+                        // Select first time slot by default
+                        provider.setWorkoutDay(day, timeSlots[0]);
+                      } else {
+                        provider.clearWorkoutDay(day);
+                      }
+                    },
+                  ),
+                ),
+
+                // Time slot selection (show only if day is selected)
+                if (isSelected) ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        left: 16.0, right: 16.0, bottom: 16.0),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: timeSlots.map((timeSlot) {
+                        final isTimeSelected = selectedTime == timeSlot;
+                        return ChoiceChip(
+                          label: Text(timeSlot),
+                          selected: isTimeSelected,
+                          selectedColor: AppTheme.primaryColor,
+                          labelStyle: TextStyle(
+                            color:
+                                isTimeSelected ? Colors.white : Colors.black87,
+                            fontWeight: isTimeSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                          onSelected: (selected) {
+                            if (selected) {
+                              provider.setWorkoutDay(day, timeSlot);
+                            }
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 12),
+              ],
+            );
+          }).toList(),
+
+          const SizedBox(height: 24),
+
+          // Navigation Buttons
+          Row(
+            children: [
+              Expanded(
+                child: CustomButton(
+                  text: 'Back',
+                  isOutlined: true,
+                  onPressed: () {
+                    provider.previousStep();
+                    _animateToPage(1);
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: CustomButton(
+                  text: 'Next',
+                  onPressed: () {
+                    if (provider.canProceedFromStep(2)) {
+                      provider.nextStep();
+                      _animateToPage(3);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('Please select at least one workout day'),
+                          backgroundColor: AppTheme.errorColor,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  // Step 4: Healthy Habits
+  Widget _buildStep4(RegistrationProvider provider) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -504,7 +727,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   isOutlined: true,
                   onPressed: () {
                     provider.previousStep();
-                    _animateToPage(1);
+                    _animateToPage(2);
                   },
                 ),
               ),
@@ -515,7 +738,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   onPressed: provider.canProceedFromStep(2)
                       ? () {
                           provider.nextStep();
-                          _animateToPage(3);
+                          _animateToPage(4);
                         }
                       : null,
                 ),
@@ -527,8 +750,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
-  // Step 4: Account Setup
-  Widget _buildStep4(RegistrationProvider provider) {
+  // Step 5: Account Setup
+  Widget _buildStep5(RegistrationProvider provider) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -551,6 +774,24 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       ),
 
                       const SizedBox(height: 32),
+                      CustomTextField(
+                        label: 'First Name',
+                        hint: 'Enter your first name',
+                        controller: _firstNameController,
+                        validator: (value) =>
+                            Validators.validateRequired(value, 'First name'),
+                      ),
+                      const SizedBox(height: 20),
+
+// Last Name
+                      CustomTextField(
+                        label: 'Last Name',
+                        hint: 'Enter your last name',
+                        controller: _lastNameController,
+                        validator: (value) =>
+                            Validators.validateRequired(value, 'Last name'),
+                      ),
+                      const SizedBox(height: 20),
 
                       // Email
                       CustomTextField(
@@ -600,6 +841,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             value: provider.data.termsAccepted,
                             onChanged: (value) {
                               provider.setAccountInfo(
+                                firstName: _firstNameController.text.trim(),
+                                lastName: _lastNameController.text.trim(),
                                 email: _emailController.text.trim(),
                                 password: _passwordController.text,
                                 termsAccepted: value ?? false,
@@ -631,7 +874,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               isOutlined: true,
                               onPressed: () {
                                 provider.previousStep();
-                                _animateToPage(2);
+                                _animateToPage(3);
                               },
                             ),
                           ),
@@ -655,6 +898,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                   }
 
                                   provider.setAccountInfo(
+                                    firstName: _firstNameController.text.trim(),
+                                    lastName: _lastNameController.text.trim(),
                                     email: _emailController.text.trim(),
                                     password: _passwordController.text,
                                     termsAccepted: provider.data.termsAccepted,

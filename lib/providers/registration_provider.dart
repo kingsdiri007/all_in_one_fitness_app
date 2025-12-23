@@ -13,8 +13,8 @@ class RegistrationProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Calculate progress based on current step (0.25, 0.50, 0.75, 1.0)
-  double get progress => (_currentStep + 1) * 0.25;
+  // Calculate progress based on current step (0.20, 0.40, 0.60, 0.80, 1.0)
+  double get progress => (_currentStep + 1) * 0.20;
 
   // Set fitness goal (Step 1)
   void setGoal(String goal) {
@@ -30,7 +30,6 @@ class RegistrationProvider with ChangeNotifier {
     required double height,
     required String heightUnit,
     required int estimatedDailySteps,
-    required double freeTimePerWeek,
     required String workoutDifficulty,
     required String location,
   }) {
@@ -40,13 +39,23 @@ class RegistrationProvider with ChangeNotifier {
     _data.height = height;
     _data.heightUnit = heightUnit;
     _data.estimatedDailySteps = estimatedDailySteps;
-    _data.freeTimePerWeek = freeTimePerWeek;
     _data.workoutDifficulty = workoutDifficulty;
     _data.location = location;
     notifyListeners();
   }
 
-  // Toggle healthy habit (Step 3)
+  // Set workout schedule (Step 3 - NEW)
+  void setWorkoutDay(String day, String? timeSlot) {
+    _data.workoutSchedule[day] = timeSlot;
+    notifyListeners();
+  }
+
+  void clearWorkoutDay(String day) {
+    _data.workoutSchedule[day] = null;
+    notifyListeners();
+  }
+
+  // Toggle healthy habit (Step 4)
   void toggleHealthyHabit(String habit) {
     final habits = List<String>.from(_data.healthyHabits);
     if (habits.contains(habit)) {
@@ -58,12 +67,16 @@ class RegistrationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Set account information (Step 4)
+  // Set account information (Step 5)
   void setAccountInfo({
+    required String firstName,
+    required String lastName,
     required String email,
     required String password,
     required bool termsAccepted,
   }) {
+    _data.firstName = firstName;
+    _data.lastName = lastName;
     _data.email = email;
     _data.password = password;
     _data.termsAccepted = termsAccepted;
@@ -72,7 +85,8 @@ class RegistrationProvider with ChangeNotifier {
 
   // Navigate to next step
   void nextStep() {
-    if (_currentStep < 3) {
+    if (_currentStep < 4) {
+      // Changed from 3 to 4
       _currentStep++;
       notifyListeners();
     }
@@ -97,6 +111,8 @@ class RegistrationProvider with ChangeNotifier {
         return _data.isStep3Valid();
       case 3:
         return _data.isStep4Valid();
+      case 4:
+        return _data.isStep5Valid();
       default:
         return false;
     }
@@ -122,7 +138,7 @@ class RegistrationProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _errorMessage = 'Registration failed: ${e.toString()}';
+      _errorMessage = 'Registration failed:  ${e.toString()}';
       _isLoading = false;
       notifyListeners();
       return false;

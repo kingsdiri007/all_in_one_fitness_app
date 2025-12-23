@@ -13,16 +13,16 @@ import 'utils/constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set portrait orientation only
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   // Initialize storage service
   await StorageService.init();
-  
+
   runApp(const MyApp());
 }
 
@@ -44,7 +44,8 @@ class MyApp extends StatelessWidget {
         routes: {
           AppConstants.splashRoute: (context) => const SplashScreen(),
           AppConstants.loginRoute: (context) => const LoginScreen(),
-          AppConstants.registrationRoute: (context) => const RegistrationScreen(),
+          AppConstants.registrationRoute: (context) =>
+              const RegistrationScreen(),
           AppConstants.homeRoute: (context) => const HomeScreen(),
         },
       ),
