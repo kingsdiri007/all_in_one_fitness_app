@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/registration_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/registration_provider.dart';
 import 'services/storage_service.dart';
@@ -44,9 +44,15 @@ class MyApp extends StatelessWidget {
         routes: {
           AppConstants.splashRoute: (context) => const SplashScreen(),
           AppConstants.loginRoute: (context) => const LoginScreen(),
+<<<<<<< HEAD
           AppConstants.registrationRoute: (context) =>
               const RegistrationScreen(),
           AppConstants.homeRoute: (context) => const HomeScreen(),
+=======
+          AppConstants.registrationRoute: (context) => const RegistrationScreen(),
+          AppConstants.homeRoute: (context) => const DashboardScreen(),
+          AppConstants.dashboardRoute: (context) => const DashboardScreen(),
+>>>>>>> 14f6a581a159f39f5151c2ad255a4f8773a7cdb9
         },
       ),
     );

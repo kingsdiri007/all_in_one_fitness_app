@@ -62,90 +62,115 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 24),
-                
-                // Title
-                Text(
-                  'Welcome Back!',
-                  style: AppTheme.headingStyle,
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 8),
-                
-                Text(
-                  'Sign in to continue your fitness journey',
-                  style: AppTheme.bodySecondaryStyle,
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 48),
-                
-                // Email Field
-                CustomTextField(
-                  label: 'Email',
-                  hint: 'Enter your email',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: Validators.validateEmail,
-                  prefixIcon: const Icon(Icons.email_outlined),
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Password Field
-                CustomTextField(
-                  label: 'Password',
-                  hint: 'Enter your password',
-                  controller: _passwordController,
-                  obscureText: true,
-                  validator: Validators.validatePassword,
-                  prefixIcon: const Icon(Icons.lock_outlined),
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Forgot Password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _handleForgotPassword,
-                    child: const Text('Forgot Password?'),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: AppTheme.heroGradient,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 40),
+                  
+                  // Logo/Icon
+                  Container(
+                    width: 80,
+                    height: 80,
+                    margin: const EdgeInsets.only(bottom: 24),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withOpacity(0.4),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.fitness_center,
+                      size: 40,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Login Button
-                CustomButton(
-                  text: 'Login',
-                  onPressed: _handleLogin,
-                  isLoading: authProvider.isLoading,
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Back to Registration
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, AppConstants.registrationRoute);
-                    },
-                    child: const Text('Back to Registration'),
+                  
+                  // Title
+                  Text(
+                    'Welcome Back!',
+                    style: AppTheme.headingStyle.copyWith(fontSize: 28),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-              ],
+                  
+                  const SizedBox(height: 8),
+                  
+                  Text(
+                    'Sign in to continue your fitness journey',
+                    style: AppTheme.bodySecondaryStyle,
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: 48),
+                  
+                  // Email Field
+                  CustomTextField(
+                    label: 'Email',
+                    hint: 'Enter your email',
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: Validators.validateEmail,
+                    prefixIcon: const Icon(Icons.email_outlined),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Password Field
+                  CustomTextField(
+                    label: 'Password',
+                    hint: 'Enter your password',
+                    controller: _passwordController,
+                    obscureText: true,
+                    validator: Validators.validatePassword,
+                    prefixIcon: const Icon(Icons.lock_outlined),
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Forgot Password
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _handleForgotPassword,
+                      child: const Text('Forgot Password?'),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Login Button
+                  CustomButton(
+                    text: 'Login',
+                    onPressed: _handleLogin,
+                    isLoading: authProvider.isLoading,
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Back to Registration
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(context, AppConstants.registrationRoute);
+                      },
+                      child: const Text('Back to Registration'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
