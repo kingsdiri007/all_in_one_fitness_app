@@ -9,7 +9,7 @@ import os
 ai_planner_bp = Blueprint('ai_planner', __name__, url_prefix='/api/ai-planner')
 
 # n8n webhook URL (configure in .env)
-N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL', 'http://localhost:5678/webhook/generate-workout-plan')
+N8N_WORKOUT_WEBHOOK_URL = os.getenv('N8N_WORKOUT_WEBHOOK_URL', 'http://localhost:5678/webhook/generate-workout-plan')
 
 
 @ai_planner_bp.route('/generate', methods=['POST'])
@@ -65,7 +65,7 @@ def generate_workout_plan():
         
         # Trigger n8n workflow
         response = requests.post(
-            N8N_WEBHOOK_URL,
+            N8N_WORKOUT_WEBHOOK_URL,
             json=payload,
         timeout=300
         )
