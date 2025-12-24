@@ -350,3 +350,231 @@ class CalendarEvent(db.Model):
             'completed': self.completed,
             'completed_at': self.completed_at.isoformat() if self.completed_at else None
         }
+class Food(db.Model):
+    """Atomic unit - source of truth for nutrition"""
+    __tablename__ = "foods"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    category = db.Column(db.String(50), nullable=False)  # protein, carb, fat, vegetable, fruit, snack
+    
+    # Nutrition per 100g (industry standard)
+    calories_per_100g = db.Column(db.Float, nullable=False)
+    protein_per_100g = db.Column(db.Float, nullable=False)
+    carbs_per_100g = db.Column(db.Float, nullable=False)
+    fat_per_100g = db.Column(db.Float, nullable=False)
+    
+    # Meta
+    unit = db.Column(db.String(10), default='g')  # g, ml, piece
+    is_common = db.Column(db.Boolean, default=False)  # For suggestions
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def calculate_nutrition(self, quantity_grams):
+        """Calculate nutrition for a given quantity"""
+        multiplier = quantity_grams / 100
+        return {
+            'calories': round(self.calories_per_100g * multiplier, 1),
+            'protein': round(self.protein_per_100g * multiplier, 1),
+            'carbs': round(self.carbs_per_100g * multiplier, 1),
+            'fat': round(self.fat_per_100g * multiplier, 1)
+        }
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'category': self.category,
+            'calories_per_100g': self.calories_per_100g,
+            'protein_per_100g': self.protein_per_100g,
+            'carbs_per_100g': self.carbs_per_100g,
+            'fat_per_100g': self.fat_per_100g,
+            'unit': self.unit,
+            'is_common': self.is_common
+        }
+
+
+class Meal(db.Model):
+    """Logical combination of foods with intent"""
+    __tablename__ = "meals"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    meal_type = db.Column(db.String(20), nullable=False)  # breakfast, lunch, dinner, snack
+    goal = db.Column(db.String(50))  # weight_loss, muscle_gain, maintenance
+    description = db.Column(db.Text)
+    
+    # Cached totals (calculated from items)
+    total_calories = db.Column(db.Float, default=0)
+    total_protein = db.Column(db.Float, default=0)
+    total_carbs = db.Column(db.Float, default=0)
+    total_fat = db.Column(db.Float, default=0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    items = db.relationship('MealItem', backref='meal', lazy=True, cascade='all, delete-orphan')
+    
+    def calculate_totals(self):
+        """Calculate and cache nutrition totals from all items"""
+        self.total_calories = 0
+        self.total_protein = 0
+        self.total_carbs = 0
+        self.total_fat = 0
+        
+        for item in self.items:
+            nutrition = item.food.calculate_nutrition(item.quantity)
+            self.total_calories += nutrition['calories']
+            self.total_protein += nutrition['protein']
+            self.total_carbs += nutrition['carbs']
+            self.total_fat += nutrition['fat']
+        
+        # Round totals
+        self.total_calories = round(self.total_calories, 1)
+        self.total_protein = round(self.total_protein, 1)
+        self.total_carbs = round(self.total_carbs, 1)
+        self.total_fat = round(self.total_fat, 1)
+    
+    def to_dict(self, include_items=False):
+        result = {
+            'id': self.id,
+            'name': self.name,
+            'meal_type': self.meal_type,
+            'goal': self.goal,
+            'description': self.description,
+            'total_calories': self.total_calories,
+            'total_protein': self.total_protein,
+            'total_carbs': self.total_carbs,
+            'total_fat': self.total_fat,
+            'created_at': self.created_at.isoformat()
+        }
+        
+        if include_items:
+            result['items'] = [item.to_dict() for item in self.items]
+        
+        return result
+
+
+class MealItem(db.Model):
+    """The glue - prevents chaos"""
+    __tablename__ = "meal_items"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    meal_id = db.Column(db.Integer, db.ForeignKey('meals.id'), nullable=False)
+    food_id = db.Column(db.Integer, db.ForeignKey('foods.id'), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)  # in grams or ml
+    
+    # Relationships
+    food = db.relationship('Food', backref='meal_items')
+    
+    def to_dict(self):
+        nutrition = self.food.calculate_nutrition(self.quantity)
+        return {
+            'id': self.id,
+            'food': self.food.to_dict(),
+            'quantity': self.quantity,
+            'nutrition': nutrition
+        }
+
+
+class DailyMealPlan(db.Model):
+    """User's daily meal plan (for n8n integration later)"""
+    __tablename__ = "daily_meal_plans"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    
+    breakfast_id = db.Column(db.Integer, db.ForeignKey('meals.id'))
+    lunch_id = db.Column(db.Integer, db.ForeignKey('meals.id'))
+    dinner_id = db.Column(db.Integer, db.ForeignKey('meals.id'))
+    snack_id = db.Column(db.Integer, db.ForeignKey('meals.id'))
+    
+    # Totals for the day
+    total_calories = db.Column(db.Float, default=0)
+    total_protein = db.Column(db.Float, default=0)
+    total_carbs = db.Column(db.Float, default=0)
+    total_fat = db.Column(db.Float, default=0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='meal_plans')
+    breakfast = db.relationship('Meal', foreign_keys=[breakfast_id])
+    lunch = db.relationship('Meal', foreign_keys=[lunch_id])
+    dinner = db.relationship('Meal', foreign_keys=[dinner_id])
+    snack = db.relationship('Meal', foreign_keys=[snack_id])
+    
+    def calculate_totals(self):
+        """Calculate daily totals"""
+        self.total_calories = 0
+        self.total_protein = 0
+        self.total_carbs = 0
+        self.total_fat = 0
+        
+        for meal in [self.breakfast, self.lunch, self.dinner, self.snack]:
+            if meal:
+                self.total_calories += meal.total_calories
+                self.total_protein += meal.total_protein
+                self.total_carbs += meal.total_carbs
+                self.total_fat += meal.total_fat
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'date': self.date.isoformat(),
+            'breakfast': self.breakfast.to_dict(include_items=True) if self.breakfast else None,
+            'lunch': self.lunch.to_dict(include_items=True) if self.lunch else None,
+            'dinner': self.dinner.to_dict(include_items=True) if self.dinner else None,
+            'snack': self.snack.to_dict(include_items=True) if self.snack else None,
+            'total_calories': self.total_calories,
+            'total_protein': self.total_protein,
+            'total_carbs': self.total_carbs,
+            'total_fat': self.total_fat
+        }
+class MealSchedule(db.Model):
+    """User's weekly meal schedule (similar to UserSchedule for workouts)"""
+    __tablename__ = "meal_schedules"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # User nutrition targets
+    daily_calories = db.Column(db.Integer)
+    daily_protein = db.Column(db.Integer)
+    daily_carbs = db.Column(db.Integer)
+    daily_fat = db.Column(db.Integer)
+    
+    # User data snapshot
+    current_weight = db.Column(db.Float)
+    goal_weight = db.Column(db.Float)
+    days_to_goal = db.Column(db.Integer)
+    goal = db.Column(db.String(50))  # lose_fat, muscle_gain, maintenance
+    
+    # AI-generated plan (stores the full weekly JSON)
+    weekly_plan = db.Column(db.JSON)
+    
+    # Metadata
+    generated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    generation_status = db.Column(db.String(20), default='pending')
+    
+    user = db.relationship('User', backref='meal_schedules')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'daily_calories': self.daily_calories,
+            'daily_protein': self.daily_protein,
+            'daily_carbs': self.daily_carbs,
+            'daily_fat': self.daily_fat,
+            'current_weight': self.current_weight,
+            'goal_weight': self.goal_weight,
+            'days_to_goal': self.days_to_goal,
+            'goal': self.goal,
+            'weekly_plan': self.weekly_plan,
+            'generated_at': self.generated_at.isoformat(),
+            'is_active': self.is_active,
+            'generation_status': self.generation_status
+        }
