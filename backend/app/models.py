@@ -1,23 +1,27 @@
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-
 class User(db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    first_name = db.Column(db.String(50))
-    last_name = db.Column(db.String(50))
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Biometric data
+
     age = db.Column(db.Integer)
-    weight = db.Column(db.Float)  # in kg
-    height = db.Column(db.Float)  # in cm
+    weight = db.Column(db.Float, nullable=False)  # in kg or lbs
+    goal_weight = db.Column(db.Float, nullable=False)  # ⬅️ NEW
+    height = db.Column(db.Float, nullable=False)  # in cm or ft
     gender = db.Column(db.String(10))
-    fitness_goal = db.Column(db.String(50))  # weight_loss, muscle_gain, fitness
+    fitness_goal = db.Column(db.String(50), nullable=False)  # ⬅️ Made required
+    
+    # Activity data
+    estimated_daily_steps = db.Column(db.Integer, nullable=False, default=5000)  # ⬅️ NEW
+    workout_difficulty = db.Column(db.String(20), nullable=False, default='Beginner')  # ⬅️ NEW
+    location = db.Column(db.String(50), nullable=False)  # ⬅️ NEW
     
     # Relationships
     workouts = db.relationship('UserWorkout', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -36,9 +40,13 @@ class User(db.Model):
             'last_name': self.last_name,
             'age': self.age,
             'weight': self.weight,
+            'goal_weight': self.goal_weight,
             'height': self.height,
             'gender': self.gender,
             'fitness_goal': self.fitness_goal,
+            'estimated_daily_steps': self.estimated_daily_steps,
+            'workout_difficulty': self.workout_difficulty,
+            'location': self.location,
             'created_at': self.created_at.isoformat()
         }
     def get_workout_stats(self):
