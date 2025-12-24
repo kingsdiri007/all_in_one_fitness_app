@@ -1,0 +1,175 @@
+{
+  "name": "AI Meal Plan Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-meal-plan",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "webhook-meal-trigger",
+      "name": "Webhook",
+      "webhookId": "meal-plan-generator-webhook"
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:5000/api/meals/foods?common=true",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [200, 0],
+      "id": "get-available-foods",
+      "name": "Get Available Foods"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate nutrition requirements and prepare data for AI\nconst items = [];\n\nfor (const item of $input.all()) {\n  const webhookData = $('Webhook').item.json.body;\n  const foods = item.json.foods || [];\n  \n  // User data\n  const currentWeight = webhookData.current_weight;\n  const goalWeight = webhookData.goal_weight;\n  const daysToGoal = webhookData.days_to_goal;\n  const goal = webhookData.goal; // muscle_gain or lose_fat\n  const age = webhookData.age || 30;\n  const gender = webhookData.gender || 'male';\n  const height = webhookData.height || 170;\n  \n  // Calculate weight change per week\n  const weightDifference = goalWeight - currentWeight;\n  const weeksToGoal = daysToGoal / 7;\n  const weightChangePerWeek = weightDifference / weeksToGoal;\n  \n  // Calculate TDEE (Total Daily Energy Expenditure)\n  // Using Mifflin-St Jeor Equation\n  let bmr;\n  if (gender === 'male') {\n    bmr = (10 * currentWeight) + (6.25 * height) - (5 * age) + 5;\n  } else {\n    bmr = (10 * currentWeight) + (6.25 * height) - (5 * age) - 161;\n  }\n  \n  // Assume moderate activity (1.55 multiplier)\n  const tdee = bmr * 1.55;\n  \n  // Calculate target calories based on goal\n  let targetCalories;\n  let proteinPerKg;\n  let carbPercentage;\n  let fatPercentage;\n  \n  if (goal === 'lose_fat') {\n    // Deficit: 500 kcal/day = 0.5kg/week loss\n    const deficitNeeded = Math.abs(weightChangePerWeek) * 7700 / 7; // 7700 kcal per kg\n    targetCalories = Math.round(tdee - deficitNeeded);\n    proteinPerKg = 2.2; // High protein to preserve muscle\n    carbPercentage = 35;\n    fatPercentage = 25;\n  } else if (goal === 'muscle_gain') {\n    // Surplus: 300-500 kcal/day for clean bulk\n    const surplusNeeded = Math.abs(weightChangePerWeek) * 7700 / 7;\n    targetCalories = Math.round(tdee + surplusNeeded);\n    proteinPerKg = 2.0;\n    carbPercentage = 45;\n    fatPercentage = 25;\n  } else {\n    // Maintenance\n    targetCalories = Math.round(tdee);\n    proteinPerKg = 1.8;\n    carbPercentage = 40;\n    fatPercentage = 30;\n  }\n  \n  // Ensure minimum calories\n  if (targetCalories < 1200) targetCalories = 1200;\n  if (targetCalories > 4000) targetCalories = 4000;\n  \n  // Calculate macros\n  const targetProtein = Math.round(currentWeight * proteinPerKg);\n  const proteinCalories = targetProtein * 4;\n  const carbCalories = Math.round(targetCalories * (carbPercentage / 100));\n  const fatCalories = Math.round(targetCalories * (fatPercentage / 100));\n  const targetCarbs = Math.round(carbCalories / 4);\n  const targetFat = Math.round(fatCalories / 9);\n  \n  // Group foods by category for AI\n  const foodsByCategory = {\n    proteins: foods.filter(f => f.category === 'protein'),\n    carbs: foods.filter(f => f.category === 'carb'),\n    fats: foods.filter(f => f.category === 'fat'),\n    vegetables: foods.filter(f => f.category === 'vegetable'),\n    fruits: foods.filter(f => f.category === 'fruit'),\n    snacks: foods.filter(f => f.category === 'snack')\n  };\n  \n  items.push({\n    json: {\n      user_data: {\n        current_weight: currentWeight,\n        goal_weight: goalWeight,\n        days_to_goal: daysToGoal,\n        goal: goal,\n        age: age,\n        gender: gender,\n        height: height\n      },\n      nutrition_targets: {\n        daily_calories: targetCalories,\n        daily_protein: targetProtein,\n        daily_carbs: targetCarbs,\n        daily_fat: targetFat,\n        tdee: Math.round(tdee),\n        weight_change_per_week: Math.round(weightChangePerWeek * 100) / 100\n      },\n      available_foods: foods,\n      foods_by_category: foodsByCategory,\n      schedule_id: webhookData.schedule_id,\n      user_id: webhookData.user_id\n    }\n  });\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 0],
+      "id": "calculate-nutrition",
+      "name": "Calculate Nutrition Requirements"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional nutritionist AI. Generate a personalized 7-day meal plan based on the user's goals and nutrition requirements.\n\nUSER PROFILE:\n- Current Weight: {{ $json.user_data.current_weight }}kg\n- Goal Weight: {{ $json.user_data.goal_weight }}kg\n- Days to Goal: {{ $json.user_data.days_to_goal }}\n- Fitness Goal: {{ $json.user_data.goal }}\n- Age: {{ $json.user_data.age }}\n- Gender: {{ $json.user_data.gender }}\n- Height: {{ $json.user_data.height }}cm\n\nNUTRITION TARGETS (DAILY):\n- Calories: {{ $json.nutrition_targets.daily_calories }} kcal\n- Protein: {{ $json.nutrition_targets.daily_protein }}g\n- Carbs: {{ $json.nutrition_targets.daily_carbs }}g\n- Fat: {{ $json.nutrition_targets.daily_fat }}g\n- TDEE: {{ $json.nutrition_targets.tdee }} kcal\n- Expected Weight Change: {{ $json.nutrition_targets.weight_change_per_week }}kg/week\n\nAVAILABLE FOODS BY CATEGORY:\nProteins: {{ JSON.stringify($json.foods_by_category.proteins.slice(0, 10)) }}\nCarbs: {{ JSON.stringify($json.foods_by_category.carbs.slice(0, 10)) }}\nFats: {{ JSON.stringify($json.foods_by_category.fats.slice(0, 8)) }}\nVegetables: {{ JSON.stringify($json.foods_by_category.vegetables.slice(0, 8)) }}\nFruits: {{ JSON.stringify($json.foods_by_category.fruits.slice(0, 8)) }}\nSnacks: {{ JSON.stringify($json.foods_by_category.snacks.slice(0, 5)) }}\n\nMEAL STRUCTURE RULES:\n1. Breakfast (300-600 kcal):\n   - Must include: carbs + protein\n   - Examples: oats + eggs, yogurt + fruits + nuts\n\n2. Lunch (500-900 kcal):\n   - Must include: protein (mandatory)\n   - Include: carbs, vegetables\n   - Largest meal of the day\n\n3. Dinner (400-700 kcal):\n   - Must include: protein (mandatory)\n   - Lighter on carbs than lunch\n   - More vegetables\n\n4. Snacks (100-300 kcal, 1-2 per day):\n   - Small portions\n   - Protein-focused if muscle gain\n   - Fruit-based if fat loss\n\nPORTION GUIDELINES:\n- Protein sources: 80-200g\n- Cooked carbs (rice, pasta): 50-200g\n- Raw carbs (oats): 40-80g\n- Fat sources (oils): 5-20g, (nuts): 15-30g\n- Vegetables: 100-200g\n- Fruits: 80-150g\n\nIMPORTANT: Respond ONLY with valid JSON (no markdown, no explanation):\n{\n  \"monday\": {\n    \"breakfast\": {\n      \"name\": \"High Protein Oatmeal\",\n      \"items\": [\n        {\"food_id\": 11, \"food_name\": \"Oats\", \"quantity\": 60},\n        {\"food_id\": 2, \"food_name\": \"Eggs\", \"quantity\": 100},\n        {\"food_id\": 27, \"food_name\": \"Banana\", \"quantity\": 120}\n      ],\n      \"total_calories\": 450,\n      \"total_protein\": 28,\n      \"total_carbs\": 52,\n      \"total_fat\": 12\n    },\n    \"lunch\": {\n      \"name\": \"Chicken Rice Bowl\",\n      \"items\": [\n        {\"food_id\": 1, \"food_name\": \"Chicken Breast\", \"quantity\": 180},\n        {\"food_id\": 9, \"food_name\": \"Brown Rice (cooked)\", \"quantity\": 150},\n        {\"food_id\": 21, \"food_name\": \"Broccoli (cooked)\", \"quantity\": 150}\n      ],\n      \"total_calories\": 620,\n      \"total_protein\": 62,\n      \"total_carbs\": 58,\n      \"total_fat\": 8\n    },\n    \"dinner\": {\n      \"name\": \"Salmon with Vegetables\",\n      \"items\": [\n        {\"food_id\": 5, \"food_name\": \"Salmon\", \"quantity\": 150},\n        {\"food_id\": 22, \"food_name\": \"Spinach (cooked)\", \"quantity\": 100},\n        {\"food_id\": 15, \"food_name\": \"Olive Oil\", \"quantity\": 10}\n      ],\n      \"total_calories\": 480,\n      \"total_protein\": 35,\n      \"total_carbs\": 8,\n      \"total_fat\": 25\n    },\n    \"snack\": {\n      \"name\": \"Greek Yogurt with Berries\",\n      \"items\": [\n        {\"food_id\": 4, \"food_name\": \"Greek Yogurt\", \"quantity\": 150},\n        {\"food_id\": 31, \"food_name\": \"Blueberries\", \"quantity\": 80}\n      ],\n      \"total_calories\": 190,\n      \"total_protein\": 16,\n      \"total_carbs\": 16,\n      \"total_fat\": 8\n    },\n    \"daily_totals\": {\n      \"calories\": 1740,\n      \"protein\": 141,\n      \"carbs\": 134,\n      \"fat\": 53\n    }\n  },\n  \"tuesday\": { /* same structure */ },\n  \"wednesday\": { /* same structure */ },\n  \"thursday\": { /* same structure */ },\n  \"friday\": { /* same structure */ },\n  \"saturday\": { /* same structure */ },\n  \"sunday\": { /* same structure */ }\n}\n\nRULES:\n- Use ONLY food_id from available foods list\n- Each day should hit daily targets ±100 kcal\n- Variety: Don't repeat the same meal more than twice per week\n- Realistic portions (no 1g or 500g portions)\n- Calculate daily_totals accurately\n- Include 3-4 meals per day (breakfast, lunch, dinner, optional snack)\n- Protein at every meal\n- Progressive meal sizes: breakfast < dinner < lunch",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [600, 0],
+      "id": "ai-meal-generation",
+      "name": "AI Meal Generation"
+    },
+    {
+      "parameters": {
+        "model": "nex-agi/deepseek-v3.1-nex-n1:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [520, 200],
+      "id": "openrouter-model",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "jjO7FQPBVyoddzCA",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and validate meal plan\nconst items = [];\n\nfor (const item of $input.all()) {\n  let weeklyMealPlan;\n  \n  try {\n    // Get AI response\n    let aiResponse = item.json.text || \n                     item.json.content || \n                     item.json.response || \n                     item.json.choices?.[0]?.message?.content;\n    \n    if (!aiResponse) {\n      items.push({\n        json: {\n          error: 'No AI response found',\n          raw_response: item.json\n        }\n      });\n      continue;\n    }\n    \n    // Clean markdown\n    let cleanedResponse = aiResponse\n      .replace(/```json\\n?/g, '')\n      .replace(/```\\n?/g, '')\n      .trim();\n    \n    // Parse JSON\n    weeklyMealPlan = JSON.parse(cleanedResponse);\n    \n    // Validate structure\n    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];\n    const errors = [];\n    \n    for (const day of days) {\n      if (!weeklyMealPlan[day]) {\n        errors.push(`Missing ${day}`);\n        continue;\n      }\n      \n      const dayPlan = weeklyMealPlan[day];\n      \n      // Check required meals\n      if (!dayPlan.breakfast || !dayPlan.lunch || !dayPlan.dinner) {\n        errors.push(`${day}: Missing required meals`);\n      }\n      \n      // Validate each meal has items\n      ['breakfast', 'lunch', 'dinner', 'snack'].forEach(mealType => {\n        if (dayPlan[mealType]) {\n          const meal = dayPlan[mealType];\n          if (!meal.items || meal.items.length === 0) {\n            errors.push(`${day} ${mealType}: No items`);\n          }\n          \n          // Check each item\n          meal.items?.forEach((item, idx) => {\n            if (!item.food_id || !item.quantity) {\n              errors.push(`${day} ${mealType} item ${idx}: Missing food_id or quantity`);\n            }\n            if (item.quantity < 1 || item.quantity > 1000) {\n              errors.push(`${day} ${mealType} item ${idx}: Invalid quantity ${item.quantity}g`);\n            }\n          });\n        }\n      });\n      \n      // Check daily totals exist\n      if (!dayPlan.daily_totals) {\n        errors.push(`${day}: Missing daily_totals`);\n      }\n    }\n    \n    if (errors.length > 0) {\n      throw new Error('Validation errors: ' + errors.join('; '));\n    }\n    \n  } catch (error) {\n    items.push({\n      json: {\n        error: 'Failed to parse/validate AI response',\n        details: error.message,\n        raw_response: item.json\n      }\n    });\n    continue;\n  }\n  \n  // Get metadata\n  const calculatedData = $('Calculate Nutrition Requirements').item.json;\n  const webhookData = $('Webhook').item.json.body;\n  \n  // Build output\n  items.push({\n    json: {\n      schedule_id: webhookData.schedule_id,\n      user_id: webhookData.user_id,\n      user_data: calculatedData.user_data,\n      nutrition_targets: calculatedData.nutrition_targets,\n      weekly_meal_plan: weeklyMealPlan,\n      generated_at: new Date().toISOString(),\n      validation_status: 'success'\n    }\n  });\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 0],
+      "id": "parse-validate",
+      "name": "Parse & Validate Response"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5000/api/meals/webhook/plan-ready",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"schedule_id\": {{ $json.schedule_id }},\n  \"user_id\": {{ $json.user_id }},\n  \"user_data\": {{ JSON.stringify($json.user_data) }},\n  \"nutrition_targets\": {{ JSON.stringify($json.nutrition_targets) }},\n  \"weekly_meal_plan\": {{ JSON.stringify($json.weekly_meal_plan) }},\n  \"generated_at\": \"{{ $json.generated_at }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [1000, 0],
+      "id": "send-to-backend",
+      "name": "Send to Backend"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Available Foods",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Available Foods": {
+      "main": [
+        [
+          {
+            "node": "Calculate Nutrition Requirements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Nutrition Requirements": {
+      "main": [
+        [
+          {
+            "node": "AI Meal Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Meal Generation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Meal Generation": {
+      "main": [
+        [
+          {
+            "node": "Parse & Validate Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Validate Response": {
+      "main": [
+        [
+          {
+            "node": "Send to Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,272 @@
+{
+  "name": "AI Meal Generator - FitLife",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=http://127.0.0.1:5000/api/meals/foods?common=true",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "23da7686-1057-41fa-84a0-55a0a5aaa81e",
+      "name": "Get Available Foods",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert nutritionist AI. Generate a personalized 7-day meal plan.\n\nUSER PROFILE:\n- Current Weight: {{ $json.user_data.current_weight }}kg\n- Goal Weight: {{ $json.user_data.goal_weight }}kg\n- Goal: {{ $json.user_data.goal }}\n- Age: {{ $json.user_data.age }}, Gender: {{ $json.user_data.gender }}, Height: {{ $json.user_data.height }}cm\n\nDAILY TARGETS:\n- Calories: {{ $json.nutrition_targets.daily_calories }} kcal\n- Protein: {{ $json.nutrition_targets.daily_protein }}g\n- Carbs: {{ $json.nutrition_targets.daily_carbs }}g\n- Fat: {{ $json.nutrition_targets.daily_fat }}g\n\nAVAILABLE FOODS (use ONLY these food_id values):\n{{ JSON.stringify($json.foods_by_category) }}\n\nRULES:\n1. Generate 7 days (monday-sunday)\n2. Each day: breakfast, lunch, dinner, snack (optional)\n3. Use realistic portions (10-400g)\n4. Hit daily targets ±100 kcal\n5. Variety across week\n\nOUTPUT (JSON ONLY, no markdown):\n{\n  \"monday\": {\n    \"breakfast\": {\n      \"name\": \"Meal Name\",\n      \"items\": [{\"food_id\": 1, \"food_name\": \"Name\", \"quantity\": 100}],\n      \"totals\": {\"calories\": 500, \"protein\": 30, \"carbs\": 50, \"fat\": 15}\n    },\n    \"lunch\": {...},\n    \"dinner\": {...},\n    \"snack\": {...},\n    \"daily_totals\": {\"calories\": 2000, \"protein\": 150, \"carbs\": 200, \"fat\": 60}\n  },\n  \"tuesday\": {...},\n  \"wednesday\": {...},\n  \"thursday\": {...},\n  \"friday\": {...},\n  \"saturday\": {...},\n  \"sunday\": {...}\n}",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        3136,
+        0
+      ],
+      "id": "188e9db0-7905-4823-a8f0-6f0eaf819f0f",
+      "name": "Basic LLM Chain",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "model": "nex-agi/deepseek-v3.1-nex-n1:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        3088,
+        208
+      ],
+      "id": "90a747d6-1f6c-49ac-a06b-79b008146f0f",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "jjO7FQPBVyoddzCA",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-meal-plan",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "7636b4af-224f-4541-93d9-1141b96b4b3f",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        2464,
+        0
+      ],
+      "webhookId": "62927296-bbb8-4131-9063-fdee1f5f709c"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"monday\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"breakfast\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"lunch\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"dinner\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"snack\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"daily_totals\": {\n          \"$ref\": \"#/definitions/totals\"\n        }\n      },\n      \"required\": [\"breakfast\", \"lunch\", \"dinner\", \"daily_totals\"]\n    },\n    \"tuesday\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"breakfast\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"lunch\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"dinner\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"snack\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"daily_totals\": {\n          \"$ref\": \"#/definitions/totals\"\n        }\n      },\n      \"required\": [\"breakfast\", \"lunch\", \"dinner\", \"daily_totals\"]\n    },\n    \"wednesday\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"breakfast\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"lunch\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"dinner\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"snack\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"daily_totals\": {\n          \"$ref\": \"#/definitions/totals\"\n        }\n      },\n      \"required\": [\"breakfast\", \"lunch\", \"dinner\", \"daily_totals\"]\n    },\n    \"thursday\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"breakfast\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"lunch\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"dinner\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"snack\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"daily_totals\": {\n          \"$ref\": \"#/definitions/totals\"\n        }\n      },\n      \"required\": [\"breakfast\", \"lunch\", \"dinner\", \"daily_totals\"]\n    },\n    \"friday\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"breakfast\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"lunch\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"dinner\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"snack\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"daily_totals\": {\n          \"$ref\": \"#/definitions/totals\"\n        }\n      },\n      \"required\": [\"breakfast\", \"lunch\", \"dinner\", \"daily_totals\"]\n    },\n    \"saturday\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"breakfast\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"lunch\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"dinner\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"snack\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"daily_totals\": {\n          \"$ref\": \"#/definitions/totals\"\n        }\n      },\n      \"required\": [\"breakfast\", \"lunch\", \"dinner\", \"daily_totals\"]\n    },\n    \"sunday\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"breakfast\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"lunch\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"dinner\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"snack\": {\n          \"$ref\": \"#/definitions/meal\"\n        },\n        \"daily_totals\": {\n          \"$ref\": \"#/definitions/totals\"\n        }\n      },\n      \"required\": [\"breakfast\", \"lunch\", \"dinner\", \"daily_totals\"]\n    }\n  },\n  \"required\": [\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\", \"saturday\", \"sunday\"],\n  \"definitions\": {\n    \"meal\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"name\": {\n          \"type\": \"string\",\n          \"description\": \"Name of the meal\"\n        },\n        \"items\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"food_id\": {\n                \"type\": \"integer\",\n                \"description\": \"ID from available foods list\"\n              },\n              \"food_name\": {\n                \"type\": \"string\",\n                \"description\": \"Name of the food\"\n              },\n              \"quantity\": {\n                \"type\": \"number\",\n                \"description\": \"Quantity in grams\",\n                \"minimum\": 5,\n                \"maximum\": 500\n              }\n            },\n            \"required\": [\"food_id\", \"food_name\", \"quantity\"]\n          }\n        },\n        \"totals\": {\n          \"$ref\": \"#/definitions/totals\"\n        }\n      },\n      \"required\": [\"name\", \"items\", \"totals\"]\n    },\n    \"totals\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"calories\": {\n          \"type\": \"number\",\n          \"description\": \"Total calories\"\n        },\n        \"protein\": {\n          \"type\": \"number\",\n          \"description\": \"Total protein in grams\"\n        },\n        \"carbs\": {\n          \"type\": \"number\",\n          \"description\": \"Total carbs in grams\"\n        },\n        \"fat\": {\n          \"type\": \"number\",\n          \"description\": \"Total fat in grams\"\n        }\n      },\n      \"required\": [\"calories\", \"protein\", \"carbs\", \"fat\"]\n    }\n  }\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        3280,
+        208
+      ],
+      "id": "d558a470-d676-4e6b-ad6a-3be1ee57951b",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "functionCode": "const items = [];\n\nfor (const item of $input.all()) {\n  const webhookData = $('Webhook').item.json.body;\n  const foods = item.json.foods || [];\n  \n  // Extract user data\n  const currentWeight = webhookData.current_weight;\n  const goalWeight = webhookData.goal_weight;\n  const daysToGoal = webhookData.days_to_goal;\n  const goal = webhookData.goal; // lose_fat, muscle_gain, maintenance\n  const age = webhookData.age || 30;\n  const gender = webhookData.gender || 'male';\n  const height = webhookData.height || 170;\n  const activityLevel = webhookData.activity_level || 'moderate';\n  \n  // Calculate BMR (Basal Metabolic Rate) - Mifflin-St Jeor Equation\n  let bmr;\n  if (gender === 'male') {\n    bmr = (10 * currentWeight) + (6.25 * height) - (5 * age) + 5;\n  } else {\n    bmr = (10 * currentWeight) + (6.25 * height) - (5 * age) - 161;\n  }\n  \n  // Activity multipliers\n  const activityMultipliers = {\n    'sedentary': 1.2,\n    'light': 1.375,\n    'moderate': 1.55,\n    'active': 1.725,\n    'very_active': 1.9\n  };\n  \n  // Calculate TDEE (Total Daily Energy Expenditure)\n  const tdee = bmr * (activityMultipliers[activityLevel] || 1.55);\n  \n  // Calculate weight change needed\n  const weightDifference = goalWeight - currentWeight;\n  const weeksToGoal = daysToGoal / 7;\n  const weightChangePerWeek = weightDifference / weeksToGoal;\n  \n  // Calculate target calories based on goal\n  let targetCalories;\n  let proteinPerKg;\n  let carbPercentage;\n  let fatPercentage;\n  \n  if (goal === 'lose_fat' || goal === 'weight_loss') {\n    // Deficit: 500 kcal/day = 0.5kg/week loss\n    // 7700 kcal per kg of fat\n    const deficitNeeded = Math.abs(weightChangePerWeek) * 7700 / 7;\n    targetCalories = Math.round(tdee - Math.min(deficitNeeded, 750)); // Max 750 kcal deficit\n    proteinPerKg = 2.2; // High protein to preserve muscle\n    carbPercentage = 30;\n    fatPercentage = 30;\n  } else if (goal === 'muscle_gain') {\n    // Surplus: 300-500 kcal/day for lean bulk\n    const surplusNeeded = Math.abs(weightChangePerWeek) * 7700 / 7;\n    targetCalories = Math.round(tdee + Math.min(surplusNeeded, 500)); // Max 500 kcal surplus\n    proteinPerKg = 2.0;\n    carbPercentage = 45;\n    fatPercentage = 25;\n  } else {\n    // Maintenance\n    targetCalories = Math.round(tdee);\n    proteinPerKg = 1.8;\n    carbPercentage = 40;\n    fatPercentage = 30;\n  }\n  \n  // Safety limits\n  if (targetCalories < 1200) targetCalories = 1200;\n  if (targetCalories > 4000) targetCalories = 4000;\n  \n  // Calculate macros\n  const targetProtein = Math.round(currentWeight * proteinPerKg);\n  const proteinCalories = targetProtein * 4; // 4 kcal per gram\n  const carbCalories = Math.round(targetCalories * (carbPercentage / 100));\n  const fatCalories = Math.round(targetCalories * (fatPercentage / 100));\n  const targetCarbs = Math.round(carbCalories / 4); // 4 kcal per gram\n  const targetFat = Math.round(fatCalories / 9); // 9 kcal per gram\n  \n  // Adjust to hit exact calorie target\n  const calculatedTotal = proteinCalories + carbCalories + fatCalories;\n  const carbAdjustment = Math.round((targetCalories - calculatedTotal) / 4);\n  const adjustedCarbs = targetCarbs + carbAdjustment;\n  \n  // Group foods by category for easier AI processing\n  const foodsByCategory = {\n    proteins: foods.filter(f => f.category === 'protein'),\n    carbs: foods.filter(f => f.category === 'carb'),\n    fats: foods.filter(f => f.category === 'fat'),\n    vegetables: foods.filter(f => f.category === 'vegetable'),\n    fruits: foods.filter(f => f.category === 'fruit'),\n    snacks: foods.filter(f => f.category === 'snack')\n  };\n  \n  items.push({\n    json: {\n      user_data: {\n        user_id: webhookData.user_id,\n        current_weight: currentWeight,\n        goal_weight: goalWeight,\n        days_to_goal: daysToGoal,\n        goal: goal,\n        age: age,\n        gender: gender,\n        height: height,\n        activity_level: activityLevel,\n        dietary_restrictions: webhookData.dietary_restrictions || [],\n        meals_per_day: webhookData.meals_per_day || 4\n      },\n      nutrition_targets: {\n        daily_calories: targetCalories,\n        daily_protein: targetProtein,\n        daily_carbs: adjustedCarbs,\n        daily_fat: targetFat,\n        tdee: Math.round(tdee),\n        bmr: Math.round(bmr),\n        weight_change_per_week: Math.round(weightChangePerWeek * 100) / 100,\n        protein_percentage: Math.round((proteinCalories / targetCalories) * 100),\n        carb_percentage: carbPercentage,\n        fat_percentage: fatPercentage\n      },\n      available_foods: foods,\n      foods_by_category: foodsByCategory,\n      schedule_id: webhookData.schedule_id\n    }\n  });\n}\n\nreturn items;"
+      },
+      "id": "dc3ee850-8d5d-4cc4-8bf0-d1a5fd2dea47",
+      "name": "Calculate Nutrition Requirements",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        2864,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node name: \"Format Webhook Payload\"\nconst item = $input.first();\n\n// Extract the data\nconst data = item.json;\n\n// Build clean payload - no stringification needed\nconst payload = {\n  schedule_id: data.schedule_id,\n  user_id: data.user_id,\n  user_data: data.user_data,\n  nutrition_targets: data.nutrition_targets,\n  weekly_meal_plan: data.weekly_meal_plan,\n  generated_at: data.generated_at\n};\n\nreturn [{\n  json: payload\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3696,
+        0
+      ],
+      "id": "2cd9d8f2-367d-49f3-8423-98550f27d523",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "functionCode": "const items = [];\n\nfor (const item of $input.all()) {\n  try {\n    // The structured output parser can wrap data in \"output\" or return it directly\n    let weeklyMealPlan = item.json.output || item.json;\n    \n    // If it's still wrapped (sometimes happens), unwrap once more\n    if (weeklyMealPlan.output) {\n      weeklyMealPlan = weeklyMealPlan.output;\n    }\n    \n    // Validate structure\n    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];\n    const missingDays = days.filter(day => !weeklyMealPlan[day]);\n    \n    if (missingDays.length > 0) {\n      throw new Error(`Missing days: ${missingDays.join(', ')}`);\n    }\n    \n    // Get metadata from previous nodes - USE CORRECT NODE NAME\n    const calculatedData = $('Calculate Nutrition Requirements').item.json;\n    \n    if (!calculatedData) {\n      throw new Error('Could not find Calculate Nutrition Requirements node data');\n    }\n    \n    // Build final output\n    items.push({\n      json: {\n        schedule_id: calculatedData.schedule_id,\n        user_id: calculatedData.user_data.user_id,\n        user_data: calculatedData.user_data,\n        nutrition_targets: calculatedData.nutrition_targets,\n        weekly_meal_plan: weeklyMealPlan,\n        generated_at: new Date().toISOString(),\n        validation_status: 'success'\n      }\n    });\n    \n  } catch (error) {\n    items.push({\n      json: {\n        error: 'Failed to process meal plan',\n        details: error.message,\n        raw_data_keys: Object.keys(item.json),\n        status: 'failed'\n      }\n    });\n  }\n}\n\nreturn items;"
+      },
+      "id": "0e648cca-87d3-4795-92ce-214fad1d8719",
+      "name": "Parser",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        3488,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5000/api/meals/webhook/plan-ready",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"schedule_id\": \"{{ $json.schedule_id }}\",\n  \"user_id\": \"{{ $json.user_id }}\",\n  \"user_data\": {{ JSON.stringify($json.user_data) }},\n  \"nutrition_targets\": {{ JSON.stringify($json.nutrition_targets) }},\n  \"weekly_meal_plan\": {{JSON.stringify( $json.weekly_meal_plan )}},\n  \"generated_at\": \"={{ $json.generated_at }}\"\n}",
+        "options": {}
+      },
+      "id": "e1c719f2-3488-434d-a0e6-dc98120d14a0",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        4096,
+        -32
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Available Foods": {
+      "main": [
+        [
+          {
+            "node": "Calculate Nutrition Requirements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Available Foods",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Nutrition Requirements": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "27df3613-fd36-4bb0-ac96-979c43e5ae51",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3456f608d0767a2d636a9708616c183b809b2940390dada276a5c5d554708594"
+  },
+  "id": "lWk2uzgPQv2TBP9i",
+  "tags": []
+}
